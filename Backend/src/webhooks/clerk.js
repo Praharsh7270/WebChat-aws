@@ -1,53 +1,86 @@
-import express from 'express'
-import User from '../models/user.js'
-import {verifyWebhook} from '@clerk/clerk-sdk-node'
+import express from 'express';
+import User from '../models/UserModel.js';
+import { Webhook } from 'svix';
 
-const router = express.Router()
+const router = express.Router();
 
-router.post("/", async(req,res) => {
-    try{
+// Because we used express.raw() in index.js, req.body is a Buffer here.
+router.post("/", async (req, res) => {
+    try {
+        const signingSecret = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
         
-    const sigingSecret = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
-    if(!sigingSecret){
-        return res.status(500).json({error: "Webhook signing secret is not defined in the environment variables"});
-    }
-
-    const payload = Buffer.isBuffer(req.body) ? req.body.toString("utf:8") : JSON.stringify(req.body); 
-    const request = new Request("http://internal/webhooks/clerk",{
-        method: "POST",
-        headers: new Header(req.headers),
-        body: payload
-    });
-
-    const evt = await verifyWebhook(request, sigingSecret);
-
-    if(evt.type === "user.created" || evt.type === "user.updated"){
-        const u = evt.data;
-
-        const email = u.email_addresses?.find((e) => e.id === u.primary_email_address_id)?.email_address ?? u.email_addresses?.[0]?.email_address;
-
-
-        const FullName = [u.find_name, u.last_name].filter(Boolean).join(" ");
-
-        await User.findOneAndUpdate(
-            {clearkId: u.id},
-            {clearkId: u.id, email, FullName, profilePic: u.profile_image_url},
-            {new:true, upsert:true,setDefaultsOnInsert:true}
-        )
-    }
-
-    if (evt.type === "user.deleted"){
-        if(evt.data && evt.data.id){
-            await User.findOneAndDelete({clearkId: evt.data.id});
+        if (!signingSecret) {
+            console.error("Missing CLERK_WEBHOOK_SIGNING_SECRET");
+            return res.status(500).json({ error: "Webhook signing secret is missing" });
         }
-    }
 
-    res.status(200).json({message: "Webhook processed successfully"});
-    }
-    catch(error){
-        console.error("Error processing webhook:", error);
-        res.status(500).json({error: "Internal server error"});
-    }
-    })
+        // 1. Get the headers from Svix
+        const svix_id = req.headers["svix-id"];
+        const svix_timestamp = req.headers["svix-timestamp"];
+        const svix_signature = req.headers["svix-signature"];
 
-export default router
+        // If there are no Svix headers, error out
+        if (!svix_id || !svix_timestamp || !svix_signature) {
+            return res.status(400).json({ error: "Error occurred -- no svix headers" });
+        }
+
+        // 2. Get the raw body
+        const payload = req.body.toString("utf8");
+
+        // 3. Verify the payload using Svix
+        const wh = new Webhook(signingSecret);
+        let evt;
+        
+        try {
+            evt = wh.verify(payload, {
+                "svix-id": svix_id,
+                "svix-timestamp": svix_timestamp,
+                "svix-signature": svix_signature,
+            });
+        } catch (err) {
+            console.error("Error verifying webhook:", err.message);
+            return res.status(400).json({ error: "Webhook signature verification failed" });
+        }
+
+        // 4. Process the webhook event
+        const { type, data } = evt;
+
+        if (type === "user.created" || type === "user.updated") {
+            const email = data.email_addresses?.find(
+                (e) => e.id === data.primary_email_address_id
+            )?.email_address ?? data.email_addresses?.[0]?.email_address;
+
+            // Fixed typo: u.find_name -> data.first_name
+            const fullName = [data.first_name, data.last_name].filter(Boolean).join(" ");
+            
+            // Clerk recently updated profile images to use 'image_url' instead of 'profile_image_url'
+            const profilePic = data.image_url || data.profile_image_url;
+
+            // Note: Ensure your User schema expects 'clerkId' not 'clearkId'
+            await User.findOneAndUpdate(
+                { clerkId: data.id },
+                { 
+                    clerkId: data.id, 
+                    email: email, 
+                    FullName: fullName, 
+                    profilePic: profilePic 
+                },
+                { new: true, upsert: true, setDefaultsOnInsert: true }
+            );
+        }
+
+        if (type === "user.deleted") {
+            if (data && data.id) {
+                await User.findOneAndDelete({ clerkId: data.id });
+            }
+        }
+
+        return res.status(200).json({ success: true, message: "Webhook processed successfully" });
+
+    } catch (error) {
+        console.error("Unexpected error in webhook route:", error);
+        return res.status(500).json({ error: "Internal server error processing webhook" });
+    }
+});
+
+export default router;

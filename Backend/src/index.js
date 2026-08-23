@@ -8,7 +8,7 @@ import fs from "fs";
 import path from "path";
 import job from "./lib/cron.js";
 import { json } from "stream/consumers";
-import clerkWebhook from "./webhooks/clerk.js";
+import clerkWebhook from "../src/webhooks/clerk.js";
 
 const app = express();
 dotenv.config();
