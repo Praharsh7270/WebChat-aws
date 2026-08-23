@@ -1,29 +1,29 @@
+import "dotenv/config";
 import express from "express";
-import mongoose from "mongoose";
-import dotenv from "dotenv";
 import { connectDB } from "./lib/db.js";
 import { clerkMiddleware } from "@clerk/express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
 import job from "./lib/cron.js";
-import { json } from "stream/consumers";
 import clerkWebhook from "./webhooks/clerk.js";
 const app = express();
-dotenv.config();
 
 const port = process.env.PORT || 3000;
-const frontendUrl = process.env.FRONTEND_URL ;
+const frontendUrl = process.env.FRONTEND_URL;
 
 const publicDir = path.join(process.cwd(), 'public');
 
-app.use("/api/webhooks/clerk", express.raw({type:"application/json"}),clerkWebhook);
+// This must stay before express.json() because Svix verifies the exact raw body.
+app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }), clerkWebhook);
 
 app.use(express.json());
-app.use(cors({
-    origin: frontendUrl,
+app.use(
+  cors({
+    origin: frontendUrl || true,
     credentials: true,
-}));
+  })
+);
 app.use(clerkMiddleware());
 
 app.get("/health", (req, res) => {
@@ -39,11 +39,22 @@ if(fs.existsSync(publicDir)){
     })
 }
 
-app.listen(port, ()=>{
-    connectDB();
-    console.log(`server is running on port number:  ${port}`);
+async function startServer() {
+  try {
+    // Do not accept Clerk webhooks until writes to Atlas are possible.
+    await connectDB();
 
-    if(process.env.NODE_ENV === "production"){
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+
+      if (process.env.NODE_ENV === "production") {
         job.start();
-    }
-});
+      }
+    });
+  } catch (error) {
+    console.error("Server failed to start:", error.message);
+    process.exit(1);
+  }
+}
+
+startServer();

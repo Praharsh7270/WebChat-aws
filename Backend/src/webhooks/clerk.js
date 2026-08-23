@@ -1,6 +1,6 @@
-import express from 'express';
-import User from '../models/UserModel.js';
-import { Webhook } from 'svix';
+import express from "express";
+import User from "../models/UserModel.js";
+import { Webhook } from "svix";
 
 const router = express.Router();
 
@@ -50,14 +50,20 @@ router.post("/", async (req, res) => {
                 (e) => e.id === data.primary_email_address_id
             )?.email_address ?? data.email_addresses?.[0]?.email_address;
 
-            // Fixed typo: u.find_name -> data.first_name
-            const fullName = [data.first_name, data.last_name].filter(Boolean).join(" ");
-            
-            // Clerk recently updated profile images to use 'image_url' instead of 'profile_image_url'
-            const profilePic = data.image_url || data.profile_image_url;
+            if (!email) {
+                console.error(`Clerk ${type} event ${data.id} has no email address`);
+                return res.status(422).json({ error: "User event has no email address" });
+            }
 
-            // Note: Ensure your User schema expects 'clerkId' not 'clearkId'
-            await User.findOneAndUpdate(
+            // Clerk accounts can be configured to collect only an email address.
+            // A non-empty fallback keeps the required MongoDB field valid.
+            const fullName =
+                [data.first_name, data.last_name].filter(Boolean).join(" ") ||
+                data.username ||
+                email.split("@")[0];
+            const profilePic = data.image_url || data.profile_image_url || "";
+
+            const user = await User.findOneAndUpdate(
                 { clerkId: data.id },
                 { 
                     clerkId: data.id, 
@@ -67,6 +73,8 @@ router.post("/", async (req, res) => {
                 },
                 { new: true, upsert: true, setDefaultsOnInsert: true }
             );
+
+            console.log(`Synced Clerk user ${user.clerkId} to MongoDB`);
         }
 
         if (type === "user.deleted") {
