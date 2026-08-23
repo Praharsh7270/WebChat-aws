@@ -71,7 +71,7 @@ router.post("/", async (req, res) => {
                     FullName: fullName, 
                     profilePic: profilePic 
                 },
-                { new: true, upsert: true, setDefaultsOnInsert: true }
+                { returnDocument: "after", upsert: true, setDefaultsOnInsert: true }
             );
 
             console.log(`Synced Clerk user ${user.clerkId} to MongoDB`);
