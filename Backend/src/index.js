@@ -6,6 +6,7 @@ import { clerkMiddleware } from "@clerk/express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
+import job from "./lib/cron.js";
 
 const app = express();
 dotenv.config();
@@ -29,7 +30,7 @@ app.get("/health", (req, res) => {
 
 if(fs.existsSync(publicDir)){
     app.use(express.static(publicDir));
-    
+
     app.get("/{*any}", (req,res,next) =>{
         res.sendFile(path.join(publicDir, 'index.html') , (err) => next(err));
     })
@@ -38,4 +39,8 @@ if(fs.existsSync(publicDir)){
 app.listen(port, ()=>{
     connectDB();
     console.log(`server is running on port number:  ${port}`);
+
+    if(process.env.NODE_ENV === "production"){
+        job.start();
+    }
 });
