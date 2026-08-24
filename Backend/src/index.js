@@ -7,6 +7,10 @@ import fs from "fs";
 import path from "path";
 import job from "./lib/cron.js";
 import clerkWebhook from "./webhooks/clerk.js";
+import authRoutes from "./routes/AuthRoute.js";
+
+
+
 const app = express();
 
 const port = process.env.PORT || 3000;
@@ -25,6 +29,7 @@ app.use(
   })
 );
 app.use(clerkMiddleware());
+app.use("/api/auth", authRoutes);
 
 app.get("/health", (req, res) => {
     res.status(200).json({ message: "Server is healthy anna vannakam" });
