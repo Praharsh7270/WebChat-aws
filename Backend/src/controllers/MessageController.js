@@ -2,7 +2,7 @@ import express from 'express';
 import User from '../models/UserModel.js';
 import Message from '../models/MessageModel.js';
 import {hasImageKitConfig, uploadchatMedia } from "../lib/ImageKit.js";
-import { getRecevierSocketId } from '../lib/socket.js';
+import { getReceiverSocketId, io } from '../lib/socket.js';
 
 
 export async function getUserSidebar(req, res) {
@@ -25,8 +25,8 @@ export async function getCobversations(req, res) {
             {
                 $match: {
                     $or: [
-                        { sender: loggedInUser },
-                        { receiver: loggedInUser }
+                        { senderId: loggedInUser },
+                        { receiverId: loggedInUser }
                     ]
                 }
             },
@@ -34,15 +34,19 @@ export async function getCobversations(req, res) {
                 $group: {
                     _id: {
                         $cond: [
-                            { $eq: ["$sender", loggedInUser] },
-                            "$receiver",
-                            "$sender"
+                            { $eq: ["$senderId", loggedInUser] },
+                            "$receiverId",
+                            "$senderId"
                         ]
-                    },  
+                    },
+                    latestMessage: { $first: "$$ROOT" },
                 }
             },
             {
-                $sort: { "latestMessage.timestamp": -1 }
+                $sort: { createdAt: -1 }
+            },
+            {
+                $sort: { "latestMessage.createdAt": -1 }
             },
             {
                 $lookup: {
@@ -80,10 +84,10 @@ export async function getMessages(req, res) {
 
         const messages = await Message.find({
             $or: [
-                { sender: myid, receiver: usertoChat },
-                { sender: usertoChat, receiver: myid }
+                { senderId: myid, receiverId: usertoChat },
+                { senderId: usertoChat, receiverId: myid }
             ]
-        }).sort({ timestamp: 1 });
+        }).sort({ createdAt: 1 });
 
         res.status(200).json(messages);
     }
@@ -127,10 +131,10 @@ export async function sendMessage(req, res) {
 
         await newMessage.save();
 
-        const recevieerSocketId = getRecevierSocketId(receiverId);
+        const receiverSocketId = getReceiverSocketId(receiverId);
         //only send msg when user is online
-        if(recevieerSocketId){
-            io.to(recevieerSocketId).emit("NewMessage", newMessage);
+        if(receiverSocketId){
+            io.to(receiverSocketId).emit("newMessage", newMessage);
         }
 
         res.status(201).json(newMessage);

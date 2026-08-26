@@ -7,10 +7,15 @@ const server = http.createServer(app);
 
 const allowedOrigin = process.env.FRONTEND_URL;
 
-const io = new Server(server , {cors:{origin:[allowedOrigin]}})
+const io = new Server(server, {
+    cors: {
+        origin: allowedOrigin || true,
+        credentials: true,
+    },
+});
 
-function getRecevierSocketId(userId){
-    return userSocketMap(userId);
+function getReceiverSocketId(userId){
+    return userSocketMap[String(userId)];
 }
 
 const userSocketMap ={};
@@ -20,16 +25,16 @@ io.on("connection" ,(socket) =>{
     
     if(userId)
     {
-        userSocketMap[userId] = socket.id;
+        userSocketMap[String(userId)] = socket.id;
     }
 
     io.emit("getOnlineUsers", Object.keys(userSocketMap))
 
     socket.on("disconnect" , ()=>{
-        if(userId) delete userSocketMap(userId);
+        if(userId) delete userSocketMap[String(userId)];
         io.emit("getOnlineUsers" , Object.keys(userSocketMap));
     })
 })
 
 
-export {app,server,io,getRecevierSocketId}
+export { app, server, io, getReceiverSocketId };

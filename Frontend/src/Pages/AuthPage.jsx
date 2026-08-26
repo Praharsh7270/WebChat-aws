@@ -1,9 +1,22 @@
-import React from 'react'
+import { AuthActionPanel } from "../Components/Auth/AuthActionPanel.jsx";
+import AuthHeader from "../Components/Auth/AuthHeader.jsx";
+import { AuthHeroPanel } from "../Components/Auth/AuthHeroPanel.jsx";
+import { useWallpaper } from "../Context/wallpaper.js";
 
-const AuthPage = () => {
+function AuthPage() {
+  const { frameStyle } = useWallpaper();
+
   return (
-    <div>AuthPage</div>
-  )
-}
+    <div className="box-border flex min-h-dvh flex-col p-3 sm:p-5 md:p-8" style={frameStyle}>
+      <div className="mx-auto flex w-full max-w-368 flex-1 flex-col overflow-hidden rounded-3xl border border-border bg-background text-foreground">
+        <AuthHeader />
 
-export default AuthPage
+        <main className="relative flex flex-1 flex-col overflow-hidden md:flex-row">
+          <AuthHeroPanel />
+          <AuthActionPanel />
+        </main>
+      </div>
+    </div>
+  );
+}
+export default AuthPage;

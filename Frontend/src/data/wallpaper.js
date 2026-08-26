@@ -1,3 +1,5 @@
+const wallpaperUrl = (fileName) => `${import.meta.env.BASE_URL}wallpapers/${fileName}`;
+
 export const WALLPAPER_SECTIONS = [
   { id: "desktop", title: "Desktop" },
   { id: "abstract", title: "Abstract" },
@@ -8,79 +10,79 @@ export const WALLPAPERS = [
     id: "sonoma-horizon",
     category: "desktop",
     label: "Sonoma Horizon",
-    url: "/wallpapers/sonoma-horizon.jpg",
+    url: wallpaperUrl("sonoma-horizon.jpg"),
   },
   {
     id: "redwoods",
     category: "desktop",
     label: "Redwoods",
-    url: "/wallpapers/redwoods.jpg",
+    url: wallpaperUrl("redwoods.jpg"),
   },
   {
     id: "utah-evening",
     category: "desktop",
     label: "Utah Evening",
-    url: "/wallpapers/utah-evening.jpg",
+    url: wallpaperUrl("utah-evening.jpg"),
   },
   {
     id: "san-francisco-bay",
     category: "desktop",
     label: "San Francisco Bay",
-    url: "/wallpapers/san-francisco-bay.jpg",
+    url: wallpaperUrl("san-francisco-bay.jpg"),
   },
   {
     id: "iceland-coast",
     category: "desktop",
     label: "Iceland Coast",
-    url: "/wallpapers/iceland-coast.jpg",
+    url: wallpaperUrl("iceland-coast.jpg"),
   },
   {
     id: "new-york-midtown",
     category: "desktop",
     label: "New York Midtown",
-    url: "/wallpapers/new-york-midtown.jpg",
+    url: wallpaperUrl("new-york-midtown.jpg"),
   },
   {
     id: "macos-graphic",
     category: "abstract",
     label: "macOS Graphic",
-    url: "/wallpapers/macos-graphic.jpg",
+    url: wallpaperUrl("macos-graphic.jpg"),
   },
   {
     id: "radial-yellow",
     category: "abstract",
     label: "Radial Yellow",
-    url: "/wallpapers/radial-yellow.jpg",
+    url: wallpaperUrl("radial-yellow.jpg"),
   },
   {
     id: "radial-purple",
     category: "abstract",
     label: "Radial Purple",
-    url: "/wallpapers/radial-purple.jpg",
+    url: wallpaperUrl("radial-purple.jpg"),
   },
   {
     id: "radial-green",
     category: "abstract",
     label: "Radial Green",
-    url: "/wallpapers/radial-green.jpg",
+    url: wallpaperUrl("radial-green.jpg"),
   },
   {
     id: "radial-blue",
     category: "abstract",
     label: "Radial Blue",
-    url: "/wallpapers/radial-blue.jpg",
+    url: wallpaperUrl("radial-blue.jpg"),
   },
   {
     id: "ventura-light",
     category: "abstract",
     label: "Ventura",
-    url: "/wallpapers/ventura-light.jpg",
+    url: wallpaperUrl("ventura-light.jpg"),
   },
   {
     id: "ventura-dark",
     category: "abstract",
     label: "Ventura Dark",
-    url: "/wallpapers/ventura-dark.jpg",
+    url: wallpaperUrl("ventura-dark.jpg"),
   },
 ];
 

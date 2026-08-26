@@ -9,10 +9,8 @@ import job from "./lib/cron.js";
 import clerkWebhook from "./webhooks/clerk.js";
 import authRoutes from "./routes/AuthRoute.js";
 import MessageRoutes from "./routes/MessageRoutes.js";
-import {server} from "./lib/socket.js"
+import { app, server } from "./lib/socket.js";
 
-
-const app = express();
 
 const port = process.env.PORT || 3000;
 const frontendUrl = process.env.FRONTEND_URL;
