@@ -2,6 +2,7 @@ import express from 'express';
 import User from '../models/UserModel.js';
 import Message from '../models/MessageModel.js';
 import {hasImageKitConfig, uploadchatMedia } from "../lib/ImageKit.js";
+import { getRecevierSocketId } from '../lib/socket.js';
 
 
 export async function getUserSidebar(req, res) {
@@ -124,7 +125,13 @@ export async function sendMessage(req, res) {
             video:vdourl,
         })
 
-        await newMessage.save()
+        await newMessage.save();
+
+        const recevieerSocketId = getRecevierSocketId(receiverId);
+        // oonly send msg when user is online
+        if(recevieerSocketId){
+            io.to(recevieerSocketId).emit("NewMessage", newMessage);
+        }
 
         res.status(201).json(newMessage);
     }

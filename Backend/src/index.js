@@ -9,7 +9,7 @@ import job from "./lib/cron.js";
 import clerkWebhook from "./webhooks/clerk.js";
 import authRoutes from "./routes/AuthRoute.js";
 import MessageRoutes from "./routes/MessageRoutes.js";
-
+import {server} from "./lib/socket.js"
 
 
 const app = express();
@@ -51,7 +51,7 @@ async function startServer() {
     // Do not accept Clerk webhooks until writes to Atlas are possible.
     await connectDB();
 
-    app.listen(port, () => {
+    server.listen(port, () => {
       console.log(`Server is running on port ${port}`);
 
       if (process.env.NODE_ENV === "production") {
