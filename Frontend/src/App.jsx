@@ -1,25 +1,30 @@
-import { useState } from 'react'
 import './App.css'
-import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/clerk-react'
+import { useAuth } from '@clerk/clerk-react'
+import { ThemeProvider } from './Context/ThemeContext'
+import { WallpaperProvider } from './Context/WallpaperContext'
+import { Navigate, Route, Routes } from 'react-router'
+import ChatPage from './Pages/ChatPage'
+import AuthPage from './Pages/AuthPage'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { isSignedIn, isLoaded } = useAuth();
+
+  if (!isLoaded) {
+    return null;
+  }
 
   return (
-    <>
-      <div>
-        <h1>My App</h1>
-        <header>
-          <SignedOut>
-            <SignInButton />
-            <SignUpButton />
-          </SignedOut>
-          <SignedIn>
-            <UserButton />
-          </SignedIn>
-        </header>
-      </div>
-    </>
+    <ThemeProvider>
+      <WallpaperProvider>
+        <Routes>
+          <Route
+            path="/"
+            element={isSignedIn ? <ChatPage /> : <Navigate to="/auth" replace />}
+          />
+          <Route path="/auth" element={!isSignedIn ? <AuthPage /> : <Navigate to={"/chat"} />} />
+        </Routes>
+      </WallpaperProvider>
+    </ThemeProvider>
   )
 }
 

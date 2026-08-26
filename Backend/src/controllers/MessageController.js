@@ -128,7 +128,7 @@ export async function sendMessage(req, res) {
         await newMessage.save();
 
         const recevieerSocketId = getRecevierSocketId(receiverId);
-        // oonly send msg when user is online
+        //only send msg when user is online
         if(recevieerSocketId){
             io.to(recevieerSocketId).emit("NewMessage", newMessage);
         }
