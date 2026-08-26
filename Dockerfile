@@ -1,51 +1,47 @@
 # syntax=docker/dockerfile:1
-# Monolith: Vite frontend + Express API. Build from repo root.
+# Unified Full-Stack Dockerfile (Vite + Express)
 
-# --- Stage 1: build the SPA (Vite) ---
-# Produces static HTML/JS/CSS under frontend/dist.
-FROM node:22-bookworm-slim AS frontend-build
-WORKDIR /app/Frontend
-
-COPY Frontend/package*.json ./
-RUN npm ci --no-audit --no-fund
-
-COPY Frontend/ ./
-
-# Browser calls the same host /api by default. Override in production if needed.
-ARG VITE_API_URL=/api
-ARG VITE_CLERK_PUBLISHABLE_KEY=""
-ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
-
-RUN test -n "$VITE_CLERK_PUBLISHABLE_KEY" || { echo "Missing VITE_CLERK_PUBLISHABLE_KEY build arg"; exit 1; }
-RUN npm run build
-
-# --- Stage 2: build the API bundle ---
-# This backend is ESM JavaScript, so npm run build copies src/ to dist/.
-FROM node:22-bookworm-slim AS backend-build
+FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 
-COPY Backend/package*.json ./
-RUN npm ci --no-audit --no-fund
+# Copy root package.json
+COPY package*.json ./
 
-COPY Backend/ ./
+# Use npm install instead of npm ci to avoid package-lock.json missing errors
+RUN npm install --no-audit --no-fund
+
+# Copy the entire workspace
+COPY . .
+
+# Environment variables for Vite build
+ARG VITE_CLERK_PUBLISHABLE_KEY=""
+ARG VITE_API_URL=/api
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+ENV VITE_API_URL=$VITE_API_URL
+
+# Build frontend to dist/public
 RUN npm run build
 
-# --- Stage 3: runtime image (only prod deps + built assets) ---
-# Express serves API routes and static files from public/.
+# --- Stage 2: Runner ---
 FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=3000
 
-COPY Backend/package*.json ./
-RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
+# Install production dependencies
+COPY package*.json ./
+RUN npm install --omit=dev --no-audit --no-fund && npm cache clean --force
 
-COPY --from=backend-build /app/dist ./dist
-COPY --from=frontend-build /app/Frontend/dist ./public
+# Copy unified server and backend source
+COPY --from=builder /app/server.js ./
+COPY --from=builder /app/Backend ./Backend
 
-EXPOSE 3001
+# Copy built frontend assets
+COPY --from=builder /app/dist ./dist
+
+EXPOSE 3000
 USER node
 
-CMD ["node", "dist/index.js"]
+# Start the unified server
+CMD ["node", "server.js"]
