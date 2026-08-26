@@ -2,7 +2,7 @@ import {create} from "zustand"
 import { axiosInstance } from "../lib/axios";
 import { io } from "socket.io-client";
 
-const baseUrl = import.meta.env.DEV ? "http://localhost:3000" : "/";
+const baseUrl = typeof window !== "undefined" ? window.location.origin : "/";
 
 export const useAuthStore = create((set,get) => ({
     authUser:null,

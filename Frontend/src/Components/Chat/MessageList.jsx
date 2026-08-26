@@ -1,6 +1,6 @@
 import useScrollToBottom from "../../hooks/useScrollToBottom.js";
-import { MessageBubble } from "./MessageBubble";
-import { NoConversationPlaceholder } from "./NoConversationPlaceholder";
+import { MessageBubble } from "./MessageBubble.jsx";
+import { NoConversationPlaceholder } from "./NoConversationPlaceholder.jsx";
 import { useSelectedConversation } from "../../hooks/UseSelectedConversation.js";
 
 export function MessageList() {

@@ -2,23 +2,30 @@ import express from "express"
 import http from "http"
 import {Server} from "socket.io"
 
-const app = express();
-const server = http.createServer(app);
+let app = express();
+let server = http.createServer(app);
 
 const allowedOrigin = process.env.FRONTEND_URL;
 
-const io = new Server(server, {
+let io = new Server(server, {
     cors: {
         origin: allowedOrigin || true,
         credentials: true,
     },
 });
 
+let userSocketMap = {};
+
 function getReceiverSocketId(userId){
     return userSocketMap[String(userId)];
 }
 
-const userSocketMap ={};
+function setSocketServer(newApp, newServer, newIo, newUserSocketMap) {
+    if (newApp) app = newApp;
+    if (newServer) server = newServer;
+    if (newIo) io = newIo;
+    if (newUserSocketMap) userSocketMap = newUserSocketMap;
+}
 
 io.on("connection" ,(socket) =>{
     const userId = socket.handshake.query.userId;
@@ -37,4 +44,4 @@ io.on("connection" ,(socket) =>{
 })
 
 
-export { app, server, io, getReceiverSocketId };
+export { app, server, io, getReceiverSocketId, setSocketServer };

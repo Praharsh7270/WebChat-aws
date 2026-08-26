@@ -1,5 +1,5 @@
-import { withTransform } from "../../lib/imagekit";
-import { MessageVideo } from "./MessageVideo";
+import { withTransform } from "../../lib/imageKit.js";
+import { MessageVideo } from "./MessageVideo.jsx";
 
 // Compress + size images for the bubble (q-auto works for images; f-auto picks WebP/AVIF).
 const IMAGE_TRANSFORM = "q-auto,w-640,f-auto";

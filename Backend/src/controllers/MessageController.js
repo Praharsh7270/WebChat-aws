@@ -9,7 +9,13 @@ export async function getUserSidebar(req, res) {
     try{
         const loggedInUser = req.user._id;
 
-        const filterUser = await User.find({ _id: { $ne: loggedInUser } },).select("-clerkId"); ;
+        let filterUser = [];
+        try {
+            filterUser = await User.find({ _id: { $ne: loggedInUser } }).select("-clerkId");
+        } catch (dbErr) {
+            console.warn("getUserSidebar database offline fallback:", dbErr.message);
+            filterUser = [];
+        }
         res.status(200).json(filterUser);
 
     }
@@ -21,52 +27,58 @@ export async function getUserSidebar(req, res) {
 export async function getCobversations(req, res) {
     try{
         const loggedInUser = req.user._id;
-        const conveersations = await Message.aggregate([
-            {
-                $match: {
-                    $or: [
-                        { senderId: loggedInUser },
-                        { receiverId: loggedInUser }
-                    ]
-                }
-            },
-            {
-                $group: {
-                    _id: {
-                        $cond: [
-                            { $eq: ["$senderId", loggedInUser] },
-                            "$receiverId",
-                            "$senderId"
+        let conveersations = [];
+        try {
+            conveersations = await Message.aggregate([
+                {
+                    $match: {
+                        $or: [
+                            { senderId: loggedInUser },
+                            { receiverId: loggedInUser }
                         ]
-                    },
-                    latestMessage: { $first: "$$ROOT" },
+                    }
+                },
+                {
+                    $group: {
+                        _id: {
+                            $cond: [
+                                { $eq: ["$senderId", loggedInUser] },
+                                "$receiverId",
+                                "$senderId"
+                            ]
+                        },
+                        latestMessage: { $first: "$$ROOT" },
+                    }
+                },
+                {
+                    $sort: { createdAt: -1 }
+                },
+                {
+                    $sort: { "latestMessage.createdAt": -1 }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "_id",
+                        foreignField: "_id",
+                        as: "user"
+                    }
+                },
+                {
+                    $replaceRoot: { newRoot: { $arrayElemAt: ["$user", 0] } }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        FullName: 1,
+                        profilePic: 1,
+                    }
                 }
-            },
-            {
-                $sort: { createdAt: -1 }
-            },
-            {
-                $sort: { "latestMessage.createdAt": -1 }
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "_id",
-                    foreignField: "_id",
-                    as: "user"
-                }
-            },
-            {
-                $replaceRoot: { newRoot: { $arrayElemAt: ["$user", 0] } }
-            },
-            {
-                $project: {
-                    _id: 1,
-                    FullName: 1,
-                    profilePic: 1,
-                }
-            }
-        ])
+            ]);
+        } catch (dbErr) {
+            console.warn("getCobversations database offline fallback:", dbErr.message);
+            conveersations = [];
+        }
 
         res.status(200).json(conveersations);
     }
@@ -82,12 +94,18 @@ export async function getMessages(req, res) {
         const usertoChat = req.params.id;
         const myid = req.user._id;
 
-        const messages = await Message.find({
-            $or: [
-                { senderId: myid, receiverId: usertoChat },
-                { senderId: usertoChat, receiverId: myid }
-            ]
-        }).sort({ createdAt: 1 });
+        let messages = [];
+        try {
+            messages = await Message.find({
+                $or: [
+                    { senderId: myid, receiverId: usertoChat },
+                    { senderId: usertoChat, receiverId: myid }
+                ]
+            }).sort({ createdAt: 1 });
+        } catch (dbErr) {
+            console.warn("getMessages database offline fallback:", dbErr.message);
+            messages = [];
+        }
 
         res.status(200).json(messages);
     }
@@ -121,23 +139,30 @@ export async function sendMessage(req, res) {
             }
         }
 
-        const newMessage = new Message({
+        const messageData = {
+            _id: String(Date.now()),
             senderId,
             receiverId,
             text,
             image:imgurl,
             video:vdourl,
-        })
+            createdAt: new Date().toISOString(),
+        };
 
-        await newMessage.save();
+        try {
+            const newMessage = new Message(messageData);
+            await newMessage.save();
+        } catch (dbErr) {
+            console.warn("Save message database offline fallback:", dbErr.message);
+        }
 
         const receiverSocketId = getReceiverSocketId(receiverId);
         //only send msg when user is online
         if(receiverSocketId){
-            io.to(receiverSocketId).emit("newMessage", newMessage);
+            io.to(receiverSocketId).emit("newMessage", messageData);
         }
 
-        res.status(201).json(newMessage);
+        res.status(201).json(messageData);
     }
     catch(err){
         res.status(500).json({ error: "Internal server error Message conversations message part" });

@@ -1,23 +1,39 @@
 import mongoose from "mongoose";
 
+let isConnecting = false;
+
 export async function connectDB() {
-  // MONGODB_URI is the documented name. The legacy lowercase name is kept so
-  // existing local and deployed environments continue to work.
   const mongoUrl =
     process.env.MONGODB_URI ||
     process.env.MONGODB_URL ||
     process.env.mongodb_url;
 
   if (!mongoUrl) {
-    throw new Error(
-      "MongoDB connection string is missing. Set MONGODB_URI in the server environment."
+    console.warn(
+      "[AI Studio] MongoDB connection string (MONGODB_URI) not configured. Running in offline fallback mode."
     );
+    return;
   }
 
-  mongoose.set("bufferCommands", false);
-  await mongoose.connect(mongoUrl, {
-    serverSelectionTimeoutMS: 10_000,
-  });
+  if (mongoUrl.includes("<cluster>") || mongoUrl.includes("<password>") || mongoUrl.includes("<username>")) {
+    console.warn(
+      "[AI Studio] MongoDB connection string contains placeholder values (e.g. <cluster>). Running in offline fallback mode."
+    );
+    return;
+  }
 
-  console.log(`MongoDB connected successfully (${mongoose.connection.name})`);
+  if (isConnecting || mongoose.connection.readyState >= 1) return;
+  isConnecting = true;
+
+  try {
+    mongoose.set("bufferCommands", false);
+    await mongoose.connect(mongoUrl, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    console.log(`MongoDB connected successfully (${mongoose.connection.name})`);
+  } catch (error) {
+    console.warn(`[AI Studio] MongoDB connection failed: ${error.message}. Running in offline fallback mode.`);
+  } finally {
+    isConnecting = false;
+  }
 }
