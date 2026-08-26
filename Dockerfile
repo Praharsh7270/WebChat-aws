@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Use npm install instead of npm ci to avoid package-lock.json missing errors
-RUN npm install --no-audit --no-fund
+RUN npm install --no-audit --no-fund --legacy-peer-deps
 
 # Copy the entire workspace
 COPY . .
@@ -31,7 +31,7 @@ ENV PORT=3000
 
 # Install production dependencies
 COPY package*.json ./
-RUN npm install --omit=dev --no-audit --no-fund && npm cache clean --force
+RUN npm install --omit=dev --no-audit --no-fund --legacy-peer-deps && npm cache clean --force
 
 # Copy unified server and backend source
 COPY --from=builder /app/server.js ./
