@@ -150,10 +150,12 @@ export async function sendMessage(req, res) {
         if(req.file){
             const url = await uploadchatMedia(req.file);
 
-            if(req.file.mimetype.startsWith("video/")){
+            const isVideo = req.file.mimetype.startsWith("video/") || 
+                            /\.(mp4|mov|avi|mkv|webm|flv|wmv|3gp|3g2|m4v|ogv|ts|mts|m2ts|vob)$/i.test(req.file.originalname || "");
+
+            if (isVideo) {
                 vdourl = url;
-            }
-            else{
+            } else {
                 imgurl = url;
             }
         }
@@ -190,6 +192,7 @@ export async function sendMessage(req, res) {
         res.status(201).json(newMessage);
     }
     catch(err){
-        res.status(500).json({ error: "Internal server error Message conversations message part" });
+        console.error("sendMessage error:", err);
+        res.status(500).json({ error: err.message || "Internal server error Message conversations message part" });
     }
 }

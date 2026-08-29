@@ -52,7 +52,8 @@ setSocketServer(app, server, io, userSocketMap);
 // Webhook raw body (must precede express.json)
 app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }), clerkWebhook);
 
-app.use(express.json());
+app.use(express.json({ limit: "200mb" }));
+app.use(express.urlencoded({ limit: "200mb", extended: true }));
 app.use(
   cors({
     origin: true,
