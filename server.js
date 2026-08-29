@@ -1,4 +1,5 @@
-import "dotenv/config";
+import "./Backend/src/lib/sanitize-env.js";
+
 import express from "express";
 import http from "http";
 import path from "path";
@@ -63,6 +64,7 @@ app.use(
 app.use((req, res, next) => {
   const pubKey = process.env.CLERK_PUBLISHABLE_KEY || process.env.VITE_CLERK_PUBLISHABLE_KEY;
   const secKey = process.env.CLERK_SECRET_KEY;
+  
   const isValidPubKey = pubKey && (pubKey.startsWith("pk_test_") || pubKey.startsWith("pk_live_"));
   
   if (isValidPubKey) {

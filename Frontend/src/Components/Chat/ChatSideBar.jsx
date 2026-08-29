@@ -123,7 +123,7 @@ function ChatSidebar() {
         >
           {filteredConversations.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted">
-              No conversations match your search.
+              {searchQuery ? "No conversations match your search." : "No conversations yet. Switch to the Users tab to start chatting!"}
             </p>
           ) : (
             filteredConversations.map((conversation) => (

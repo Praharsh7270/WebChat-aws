@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import User from '../models/UserModel.js';
 import Message from '../models/MessageModel.js';
 import {hasImageKitConfig, uploadchatMedia } from "../lib/ImageKit.js";
@@ -11,7 +12,12 @@ export async function getUserSidebar(req, res) {
 
         let filterUser = [];
         try {
-            filterUser = await User.find({ _id: { $ne: loggedInUser } }).select("-clerkId");
+            // Prevent CastError if loggedInUser is a Clerk string (fallback user)
+            const query = mongoose.Types.ObjectId.isValid(loggedInUser) 
+                ? { _id: { $ne: loggedInUser } }
+                : { clerkId: { $ne: String(loggedInUser) } };
+                
+            filterUser = await User.find(query).select("-clerkId");
         } catch (dbErr) {
             console.warn("getUserSidebar database offline fallback:", dbErr.message);
             filterUser = [];
@@ -28,14 +34,22 @@ export async function getCobversations(req, res) {
     try{
         const loggedInUser = req.user._id;
         let conveersations = [];
+        
+        // Ensure we handle cases where loggedInUser might be a string safely
+        if (!mongoose.Types.ObjectId.isValid(loggedInUser)) {
+             return res.status(200).json(conveersations);
+        }
+        
+        const senderOrReceiverQuery = [
+            { senderId: loggedInUser },
+            { receiverId: loggedInUser }
+        ];
+
         try {
             conveersations = await Message.aggregate([
                 {
                     $match: {
-                        $or: [
-                            { senderId: loggedInUser },
-                            { receiverId: loggedInUser }
-                        ]
+                        $or: senderOrReceiverQuery
                     }
                 },
                 {
@@ -95,6 +109,10 @@ export async function getMessages(req, res) {
         const myid = req.user._id;
 
         let messages = [];
+        if (!mongoose.Types.ObjectId.isValid(myid) || !mongoose.Types.ObjectId.isValid(usertoChat)) {
+             return res.status(200).json(messages);
+        }
+
         try {
             messages = await Message.find({
                 $or: [
@@ -121,6 +139,10 @@ export async function sendMessage(req, res) {
         const {text} = req.body;
         const receiverId = req.params.id;
         const senderId = req.user._id;
+
+        if (!mongoose.Types.ObjectId.isValid(senderId) || !mongoose.Types.ObjectId.isValid(receiverId)) {
+             return res.status(400).json({ error: "Invalid user identifiers. Make sure you are fully synced with the database." });
+        }
 
         let imgurl;
         let vdourl;

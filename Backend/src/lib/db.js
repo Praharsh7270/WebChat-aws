@@ -3,10 +3,14 @@ import mongoose from "mongoose";
 let isConnecting = false;
 
 export async function connectDB() {
-  const mongoUrl =
+  let mongoUrl =
     process.env.MONGODB_URI ||
     process.env.MONGODB_URL ||
     process.env.mongodb_url;
+
+  if (mongoUrl) {
+    mongoUrl = mongoUrl.replace(/^["']|["']$/g, '');
+  }
 
   if (!mongoUrl) {
     console.warn(
