@@ -124,7 +124,10 @@ export const useChatStore = create(
         const messageText = get().composerText.trim();
         if (!conversationId || !messageText) return false;
 
-        return get().sendMessage({ text: messageText });
+        const formData = new FormData();
+        formData.append("text", messageText);
+
+        return get().sendMessage(formData);
       },
 
       sendMediaMessage: async ({ conversationId, file }) => {
