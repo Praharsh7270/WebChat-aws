@@ -141,7 +141,7 @@ export async function sendMessage(req, res) {
         const senderId = req.user._id;
 
         if (!mongoose.Types.ObjectId.isValid(senderId) || !mongoose.Types.ObjectId.isValid(receiverId)) {
-             return res.status(400).json({ error: "Invalid user identifiers. Make sure you are fully synced with the database." });
+             return res.status(400).json({ error: `Invalid user identifiers. Make sure you are fully synced with the database.` });
         }
 
         let imgurl;
