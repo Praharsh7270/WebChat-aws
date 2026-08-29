@@ -28,9 +28,20 @@ app.use(
     credentials: true,
   })
 );
-app.use(clerkMiddleware());
-app.use("/api/auth", authRoutes);
-app.use("/api/messages", MessageRoutes);
+app.use((req, res, next) => {
+  try {
+    return clerkMiddleware()(req, res, (err) => {
+      if (err) console.warn("clerkMiddleware warning:", err.message);
+      next();
+    });
+  } catch (err) {
+    console.warn("clerkMiddleware init error:", err.message);
+    next();
+  }
+});
+
+app.use(["/api/auth", "/auth"], authRoutes);
+app.use(["/api/messages", "/messages"], MessageRoutes);
 
 app.get("/health", (req, res) => {
     res.status(200).json({ message: "Server is healthy anna vannakam" });

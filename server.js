@@ -64,25 +64,27 @@ app.use(
 // Clerk auth middleware
 app.use((req, res, next) => {
   const pubKey = process.env.CLERK_PUBLISHABLE_KEY || process.env.VITE_CLERK_PUBLISHABLE_KEY;
-  const secKey = process.env.CLERK_SECRET_KEY;
-  
   const isValidPubKey = pubKey && (pubKey.startsWith("pk_test_") || pubKey.startsWith("pk_live_"));
   
   if (isValidPubKey) {
     try {
-      return clerkMiddleware()(req, res, next);
+      return clerkMiddleware()(req, res, (err) => {
+        if (err) {
+          console.warn("[AI Studio] clerkMiddleware warning:", err.message);
+        }
+        next();
+      });
     } catch (err) {
       console.warn("[AI Studio] clerkMiddleware initialization warning:", err.message);
     }
   }
   
-  // If keys are missing or invalid, skip Clerk
   next();
 });
 
 // API Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/messages", MessageRoutes);
+app.use(["/api/auth", "/auth"], authRoutes);
+app.use(["/api/messages", "/messages"], MessageRoutes);
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "WebChat server is healthy" });
