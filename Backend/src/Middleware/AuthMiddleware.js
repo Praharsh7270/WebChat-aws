@@ -2,32 +2,105 @@ import { clerkClient, getAuth } from "@clerk/express";
 import User from "../models/UserModel.js";
 import mongoose from "mongoose";
 
-async function syncUserFromClerk(clerkId) {
+const userCache = new Map();
+
+function safeDecode(str) {
+  if (!str) return undefined;
+  try {
+    return decodeURIComponent(str);
+  } catch {
+    return str;
+  }
+}
+
+export async function syncOrUpdateUser(clerkId, clientInfo = {}) {
+  if (!clerkId) return null;
+
+  let fullName = clientInfo.fullName;
+  let email = clientInfo.email;
+  let profilePic = clientInfo.profilePic;
+
+  // Try fetching from Clerk SDK if possible
   try {
     const clerkUser = await clerkClient.users.getUser(clerkId);
-    const email =
-      clerkUser.emailAddresses?.find((address) => address.id === clerkUser.primaryEmailAddressId)
-        ?.emailAddress ?? clerkUser.emailAddresses?.[0]?.emailAddress ?? `${clerkId}@no-email.com`;
+    if (clerkUser) {
+      const cEmail =
+        clerkUser.emailAddresses?.find((address) => address.id === clerkUser.primaryEmailAddressId)
+          ?.emailAddress ?? clerkUser.emailAddresses?.[0]?.emailAddress;
+      const cName =
+        [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") ||
+        clerkUser.username;
 
-    const fullName =
-      [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") ||
-      clerkUser.username ||
-      email.split("@")[0];
-
-    return await User.findOneAndUpdate(
-      { clerkId },
-      {
-        clerkId,
-        email,
-        FullName: fullName,
-        profilePic: clerkUser.imageUrl || "",
-      },
-      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
-    );
-  } catch (err) {
-    console.warn("syncUserFromClerk error:", err.message);
-    return null;
+      if (cName) fullName = cName;
+      if (cEmail) email = cEmail;
+      if (clerkUser.imageUrl) profilePic = clerkUser.imageUrl;
+    }
+  } catch {
+    // Clerk SDK fetch is optional fallback
   }
+
+  // Fallback defaults
+  if (!email || email.includes("@fallback.com")) {
+    email = clientInfo.email || `${clerkId}@user.com`;
+  }
+
+  if (!fullName || fullName === "User") {
+    fullName = clientInfo.fullName || (email.includes("@") ? email.split("@")[0] : "User");
+  }
+
+  let userDoc = null;
+
+  try {
+    userDoc = await User.findOne({ clerkId });
+    if (userDoc) {
+      let needsSave = false;
+      if (fullName && fullName !== "User" && userDoc.FullName !== fullName) {
+        userDoc.FullName = fullName;
+        needsSave = true;
+      }
+      if (email && !email.includes("@fallback.com") && userDoc.email !== email) {
+        userDoc.email = email;
+        needsSave = true;
+      }
+      if (profilePic && userDoc.profilePic !== profilePic) {
+        userDoc.profilePic = profilePic;
+        needsSave = true;
+      }
+
+      if (needsSave) {
+        await userDoc.save();
+      }
+    } else {
+      userDoc = await User.create({
+        clerkId,
+        email: email || `${clerkId}@user.com`,
+        FullName: fullName || "User",
+        profilePic: profilePic || "",
+      });
+    }
+  } catch (err) {
+    console.warn("MongoDB syncOrUpdateUser warning:", err.message);
+  }
+
+  if (!userDoc) {
+    let hex = "";
+    for (let i = 0; i < 24; i++) {
+      hex += clerkId.charCodeAt(i % clerkId.length).toString(16).charAt(0);
+    }
+    const fakeId = new mongoose.Types.ObjectId(hex.padEnd(24, '0').substring(0, 24));
+    userDoc = {
+      _id: fakeId,
+      clerkId,
+      FullName: fullName || "User",
+      email: email || `${clerkId}@user.com`,
+      profilePic: profilePic || "",
+    };
+  }
+
+  userCache.set(clerkId, userDoc);
+  userCache.set(String(userDoc._id), userDoc);
+
+  return userDoc;
 }
 
 export async function protectRoute(req, res, next) {
@@ -44,42 +117,16 @@ export async function protectRoute(req, res, next) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    let user = null;
-    try {
-      user = await User.findOne({ clerkId: userId });
-      if (!user) {
-        user = await syncUserFromClerk(userId);
-      }
-    } catch (dbErr) {
-      console.warn("Database lookup in protectRoute warning:", dbErr.message);
-    }
+    const clientInfo = {
+      fullName: safeDecode(req.headers["x-user-fullname"]),
+      email: safeDecode(req.headers["x-user-email"]),
+      profilePic: safeDecode(req.headers["x-user-image"]),
+    };
+
+    const user = await syncOrUpdateUser(userId, clientInfo);
 
     if (!user) {
-       // Clerk SDK failed, but DB might be online. Let's create a generic user in DB!
-       try {
-           user = await User.findOneAndUpdate(
-               { clerkId: userId },
-               { clerkId: userId, FullName: "User", email: `${userId}@fallback.com`, profilePic: "" },
-               { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
-           );
-       } catch (dbErr) {
-           console.warn("Fallback DB insert failed:", dbErr.message);
-       }
-    }
-
-    if (!user) {
-      // If DB is offline, give them a deterministic ObjectId based on Clerk ID
-      let hex = "";
-      for (let i = 0; i < 24; i++) {
-        hex += userId.charCodeAt(i % userId.length).toString(16).charAt(0);
-      }
-      user = {
-        _id: new mongoose.Types.ObjectId(hex.padEnd(24, '0').substring(0, 24)),
-        clerkId: userId,
-        FullName: "User",
-        email: "user@example.com",
-        profilePic: "",
-      };
+      return res.status(401).json({ error: "User authentication failed" });
     }
 
     req.user = user;
@@ -88,3 +135,4 @@ export async function protectRoute(req, res, next) {
     next(error);
   }
 }
+
