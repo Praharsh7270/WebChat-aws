@@ -148,9 +148,6 @@ export async function sendMessage(req, res) {
         let vdourl;
 
         if(req.file){
-            if(!hasImageKitConfig()){
-                return res.status(500).json({ error: "ImageKit configuration is missing" });
-            }
             const url = await uploadchatMedia(req.file);
 
             if(req.file.mimetype.startsWith("video/")){
