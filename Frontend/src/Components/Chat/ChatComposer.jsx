@@ -67,6 +67,7 @@ export function ChatComposer() {
           onChange={handleMediaPick}
         />
         <Button
+          aria-label="Send media"
           variant="ghost"
           isIconOnly
           isDisabled={isSendingMedia}
@@ -76,6 +77,7 @@ export function ChatComposer() {
           <ImageIcon className="size-5 sm:size-6" strokeWidth={2} />
         </Button>
         <TextArea
+          aria-label="Message text"
           fullWidth
           variant="secondary"
           placeholder="iMessage"
@@ -91,7 +93,7 @@ export function ChatComposer() {
           className="flex-1 rounded-full"
         />
 
-        <Button variant="primary" isIconOnly isDisabled={!composerText.trim()} onPress={handleSend}>
+        <Button aria-label="Send message" variant="primary" isIconOnly isDisabled={!composerText.trim()} onPress={handleSend}>
           <SendHorizontalIcon className="size-5" />
         </Button>
       </div>

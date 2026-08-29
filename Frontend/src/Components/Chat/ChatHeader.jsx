@@ -22,6 +22,7 @@ export function ChatHeader() {
     <header className="sticky top-0 z-10 flex shrink-0 flex-wrap items-center gap-1 border-b border-border px-1.5 py-1.5 sm:gap-2 sm:px-2 sm:py-2">
       {activeConversation && !isLargeScreen ? (
         <Button
+          aria-label="Back"
           variant="ghost"
           size="sm"
           isIconOnly
@@ -77,6 +78,7 @@ export function ChatHeader() {
         <ThemeToggle />
 
         <Button
+          aria-label={isSoundEnabled ? "Mute sound" : "Unmute sound"}
           variant="ghost"
           size="sm"
           isIconOnly

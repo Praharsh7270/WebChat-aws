@@ -161,30 +161,36 @@ export async function sendMessage(req, res) {
             }
         }
 
-        const messageData = {
-            _id: String(Date.now()),
-            senderId,
-            receiverId,
-            text,
-            image:imgurl,
-            video:vdourl,
-            createdAt: new Date().toISOString(),
-        };
-
+        let newMessage;
         try {
-            const newMessage = new Message(messageData);
+            newMessage = new Message({
+                senderId,
+                receiverId,
+                text,
+                image: imgurl,
+                video: vdourl,
+            });
             await newMessage.save();
         } catch (dbErr) {
             console.warn("Save message database offline fallback:", dbErr.message);
+            // Fallback object for offline/error mode
+            newMessage = {
+                _id: String(Date.now()),
+                senderId,
+                receiverId,
+                text,
+                image: imgurl,
+                video: vdourl,
+                createdAt: new Date().toISOString(),
+            };
         }
 
         const receiverSocketId = getReceiverSocketId(receiverId);
         //only send msg when user is online
         if(receiverSocketId){
-            io.to(receiverSocketId).emit("newMessage", messageData);
+            io.to(receiverSocketId).emit("newMessage", newMessage);
         }
-
-        res.status(201).json(messageData);
+        res.status(201).json(newMessage);
     }
     catch(err){
         res.status(500).json({ error: "Internal server error Message conversations message part" });

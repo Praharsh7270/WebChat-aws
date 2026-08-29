@@ -56,14 +56,12 @@ export function WallpaperPicker() {
   };
 
   return (
-    <Modal.Root state={modal}>
-      <Modal.Trigger>
-        <Button variant="ghost" size="sm" isIconOnly className="text-foreground">
-          <ImageIcon className="size-5" />
-        </Button>
-      </Modal.Trigger>
-
-      <Modal.Backdrop variant="opaque">
+    <>
+      <Button aria-label="Change wallpaper" variant="ghost" size="sm" isIconOnly className="text-foreground" onPress={modal.open}>
+        <ImageIcon className="size-5" />
+      </Button>
+      <Modal.Root state={modal}>
+        <Modal.Backdrop variant="opaque">
         <Modal.Container size="lg" scroll="inside" placement="center">
           <Modal.Dialog className="max-h-[85dvh] border border-white/10 bg-[#2a2a2c] text-foreground shadow-2xl">
             <Modal.Header className="flex flex-row items-center justify-between gap-3 border-b border-white/10 pb-3">
@@ -94,5 +92,6 @@ export function WallpaperPicker() {
         </Modal.Container>
       </Modal.Backdrop>
     </Modal.Root>
+    </>
   );
 }
