@@ -2,7 +2,15 @@ import {create} from "zustand"
 import { axiosInstance } from "../lib/axios";
 import { io } from "socket.io-client";
 
-const baseUrl = typeof window !== "undefined" ? window.location.origin : "/";
+const getSocketBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    return envUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+  }
+  return typeof window !== "undefined" ? window.location.origin : "/";
+};
+
+const baseUrl = getSocketBaseUrl();
 
 export const useAuthStore = create((set,get) => ({
     authUser:null,
