@@ -10,6 +10,7 @@ import { connectDB } from "./Backend/src/lib/db.js";
 import clerkWebhook from "./Backend/src/webhooks/clerk.js";
 import authRoutes from "./Backend/src/routes/AuthRoute.js";
 import MessageRoutes from "./Backend/src/routes/MessageRoutes.js";
+import ChatRoutes from "./Backend/src/routes/ChatRoutes.js";
 import { clerkMiddleware } from "@clerk/express";
 import cors from "cors";
 import job from "./Backend/src/lib/cron.js";
@@ -83,6 +84,7 @@ app.use((req, res, next) => {
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", MessageRoutes);
+app.use("/api/chat", ChatRoutes);
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "WebChat server is healthy" });

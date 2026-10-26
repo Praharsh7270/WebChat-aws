@@ -4,9 +4,9 @@ let isConnecting = false;
 
 export async function connectDB() {
   let mongoUrl =
+    process.env.mongodb_url ||
     process.env.MONGODB_URI ||
-    process.env.MONGODB_URL ||
-    process.env.mongodb_url;
+    process.env.MONGODB_URL;
 
   if (mongoUrl) {
     mongoUrl = mongoUrl.replace(/^["']|["']$/g, '');
@@ -14,7 +14,7 @@ export async function connectDB() {
 
   if (!mongoUrl) {
     console.warn(
-      "[AI Studio] MongoDB connection string (MONGODB_URI) not configured. Running in offline fallback mode."
+      "[AI Studio] MongoDB connection string (mongodb_url) not configured. Running in offline fallback mode."
     );
     return;
   }

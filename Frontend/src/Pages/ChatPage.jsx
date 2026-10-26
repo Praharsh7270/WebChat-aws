@@ -6,6 +6,7 @@ import ChatSidebar from "../Components/Chat/ChatSideBar.jsx";
 import { ChatHeader } from "../Components/Chat/ChatHeader.jsx";
 import { MessageList } from "../Components/Chat/MessageList.jsx";
 import { ChatComposer } from "../Components/Chat/ChatComposer.jsx";
+import ChatbotWidget from "../Components/Chat/ChatbotWidget.jsx";
 
 function ChatPage() {
   const { frameStyle } = useWallpaper();
@@ -49,6 +50,7 @@ function ChatPage() {
           {activeConversation ? <ChatComposer /> : null}
         </div>
       </div>
+      <ChatbotWidget />
     </div>
   );
 }

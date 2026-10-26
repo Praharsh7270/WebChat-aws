@@ -7,6 +7,7 @@ import { UserButton } from "@clerk/clerk-react";
 import { SearchField, Tabs } from "@heroui/react";
 import { MessageSquareIcon, UsersIcon } from "lucide-react";
 import { ConversationRow } from "./CoversationRow.jsx";
+import { EmergencySos } from "./EmergencySos.jsx";
 
 function mapUserForList(user, onlineUsers) {
   const name = user.FullName ?? user.fullName ?? user.email ?? "Unknown user";
@@ -28,8 +29,10 @@ function mapUserForList(user, onlineUsers) {
 }
 
 function ChatSidebar() {
-  const conversations = useChatStore((state) => state.conversations);
-  const users = useChatStore((state) => state.users);
+  const conversations = useChatStore((state) =>
+    Array.isArray(state.conversations) ? state.conversations : [],
+  );
+  const users = useChatStore((state) => (Array.isArray(state.users) ? state.users : []));
 
   const searchQuery = useChatStore((state) => state.searchQuery);
   const setSearchQuery = useChatStore((state) => state.setSearchQuery);
@@ -70,6 +73,7 @@ function ChatSidebar() {
           <p className="flex-1 truncate text-lg font-bold tracking-tight sm:text-[22px]">
             {APP_NAME}
           </p>
+          <EmergencySos />
           <UserButton
             appearance={{
               elements: {

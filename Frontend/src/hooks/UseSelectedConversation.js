@@ -30,6 +30,8 @@ function mapUserToConversation({ user, messages, authUser, onlineUsers }) {
     time: formatMessageTime(message.createdAt),
     imageUrl: message.image,
     videoUrl: message.video,
+    isEmergency: Boolean(message.isEmergency),
+    location: message.location || null,
   }));
 
   return {

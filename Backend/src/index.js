@@ -9,6 +9,7 @@ import job from "./lib/cron.js";
 import clerkWebhook from "./webhooks/clerk.js";
 import authRoutes from "./routes/AuthRoute.js";
 import MessageRoutes from "./routes/MessageRoutes.js";
+import ChatRoutes from "./routes/ChatRoutes.js";
 import { app, server } from "./lib/socket.js";
 
 
@@ -31,6 +32,7 @@ app.use(
 app.use(clerkMiddleware());
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", MessageRoutes);
+app.use("/api/chat", ChatRoutes);
 
 app.get("/health", (req, res) => {
     res.status(200).json({ message: "Server is healthy anna vannakam" });

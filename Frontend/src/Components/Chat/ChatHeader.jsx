@@ -7,6 +7,7 @@ import { ThemePresetPicker } from "../ThemePresentPicker.jsx";
 
 import { ThemeToggle } from "../ThemeToggle.jsx";
 import { WallpaperPicker } from "../WallpaperPicker.jsx";
+import { EmergencySos } from "./EmergencySos.jsx";
 
 import { useChatStore } from "../../Store/UseChatStore.js";
 import { useSelectedConversation } from "../../hooks/UseSelectedConversation.js";
@@ -70,6 +71,7 @@ export function ChatHeader() {
       )}
 
       <div className="ml-auto flex max-w-full shrink-0 flex-wrap items-center justify-end gap-0.5 sm:gap-1">
+        {!isLargeScreen ? <EmergencySos compact /> : null}
         <div className="hidden min-[400px]:contents">
           <WallpaperPicker />
           <ThemePresetPicker />

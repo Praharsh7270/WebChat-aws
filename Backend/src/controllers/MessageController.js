@@ -48,6 +48,9 @@ export async function getCobversations(req, res) {
         try {
             conveersations = await Message.aggregate([
                 {
+                    $sort: { createdAt: -1 }
+                },
+                {
                     $match: {
                         $or: senderOrReceiverQuery
                     }
@@ -63,9 +66,6 @@ export async function getCobversations(req, res) {
                         },
                         latestMessage: { $first: "$$ROOT" },
                     }
-                },
-                {
-                    $sort: { createdAt: -1 }
                 },
                 {
                     $sort: { "latestMessage.createdAt": -1 }
@@ -194,5 +194,72 @@ export async function sendMessage(req, res) {
     catch(err){
         console.error("sendMessage error:", err);
         res.status(500).json({ error: err.message || "Internal server error Message conversations message part" });
+    }
+}
+
+export async function sendEmergencyMessage(req, res) {
+    const text = typeof req.body?.text === "string" ? req.body.text.trim() : "";
+    const rawLocation = req.body?.location;
+
+    if (!text || text.length > 500) {
+        return res.status(400).json({ error: "Emergency messages must be between 1 and 500 characters." });
+    }
+
+    let location;
+    if (rawLocation !== undefined && rawLocation !== null) {
+        const { latitude, longitude, accuracy } = rawLocation;
+        if (
+            !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
+            !Number.isFinite(longitude) || longitude < -180 || longitude > 180 ||
+            (accuracy !== undefined && (!Number.isFinite(accuracy) || accuracy < 0))
+        ) {
+            return res.status(400).json({ error: "The shared location is invalid." });
+        }
+
+        location = { latitude, longitude, accuracy, capturedAt: new Date() };
+    }
+
+    try {
+        const senderId = req.user._id;
+        if (!mongoose.Types.ObjectId.isValid(senderId)) {
+            return res.status(400).json({ error: "Your account is not ready to send an emergency alert." });
+        }
+
+        const recipients = await User.find({ _id: { $ne: senderId } }).select("_id").lean();
+        if (recipients.length === 0) {
+            return res.status(200).json({ sentCount: 0 });
+        }
+
+        const emergencyId = new mongoose.Types.ObjectId().toString();
+        const messages = await Message.insertMany(recipients.map(({ _id: receiverId }) => ({
+            senderId,
+            receiverId,
+            text,
+            isEmergency: true,
+            emergencyId,
+            ...(location ? { location } : {}),
+        })));
+
+        const liveAlert = {
+            emergencyId,
+            senderId: String(senderId),
+            senderName: req.user.FullName || "A member",
+            text,
+            location: location || null,
+            createdAt: new Date(),
+        };
+
+        messages.forEach((message, index) => {
+            const socketId = getReceiverSocketId(recipients[index]._id);
+            if (!socketId) return;
+
+            io.to(socketId).emit("newMessage", message);
+            io.to(socketId).emit("emergencyAlert", liveAlert);
+        });
+
+        return res.status(201).json({ sentCount: messages.length, emergencyId });
+    } catch (error) {
+        console.error("sendEmergencyMessage error:", error.message);
+        return res.status(500).json({ error: "Could not send the emergency alert. Please try again." });
     }
 }

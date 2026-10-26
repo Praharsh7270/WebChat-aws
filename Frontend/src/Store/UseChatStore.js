@@ -26,10 +26,11 @@ export const useChatStore = create(
         set({ isUsersLoading: true });
         try {
           const res = await axiosInstance.get("/messages/users");
+          const users = Array.isArray(res.data) ? res.data : [];
           set((state) => ({
-            users: res.data,
+            users,
             selectedUser:
-              state.selectedUser && res.data.some((user) => user._id === state.selectedUser._id)
+              state.selectedUser && users.some((user) => user._id === state.selectedUser._id)
                 ? state.selectedUser
                 : null,
           }));
@@ -44,12 +45,18 @@ export const useChatStore = create(
         set({ isConversationsLoading: true });
         try {
           const res = await axiosInstance.get("/messages/conversations");
-          set({ conversations: res.data });
+          set({ conversations: Array.isArray(res.data) ? res.data : [] });
         } catch (error) {
           console.log("Error in getConversations", error.message);
         } finally {
           set({ isConversationsLoading: false });
         }
+      },
+
+      sendEmergencyAlert: async ({ text, location }) => {
+        const res = await axiosInstance.post("/messages/emergency", { text, location });
+        await get().getConversations();
+        return res.data;
       },
 
       getMessages: async (userId) => {
